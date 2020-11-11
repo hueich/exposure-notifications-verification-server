@@ -143,6 +143,7 @@ func NewIntegrationTestConfig(ctx context.Context, tb testing.TB) (*IntegrationT
 type E2EConfig struct {
 	APIServerURL string           `env:"E2E_APISERVER_URL"`
 	AdminAPIURL  string           `env:"E2E_ADMINAPI_URL"`
+	KeyServerURL string           `env:"E2E_KEYSERVER_URL"`
 	ProjectID    string           `env:"E2E_PROJECT_ID"`
 	DBConfig     *database.Config `env:",prefix=E2E_"`
 }

@@ -63,6 +63,45 @@ function incremental() {
   run_e2e_test
 }
 
+function full() {
+   # PROW_JOB_ID is an env var set by prow, use project for prow when it's in prow
+  if [[ -z "${PROJECT_ID:-}" && -n "${PROW_JOB_ID:-}" ]]; then
+      PROJECT_ID="$(boskos_acquire verification-e2e-project)"
+      trap "boskosctl_wrapper release --name \"${PROJECT_ID}\" --target-state dirty >&2" EXIT
+      export PROJECT_ID
+  fi
+
+  export KEY_SERVER="$(gcloud run services describe exposure --platform managed --region us-central1 --project apollo-boskos-key-e2e-01 | grep -Eo "https://.*a\.run\.app")"
+  if [[ -z $KEY_SERVER ]]; then
+    echo "Failed to get key server url."
+    return
+  fi
+
+  ${ROOT}/scripts/ci-terraform.sh init
+
+  pushd "${ROOT}/terraform-e2e-ci" >/dev/null 2>&1
+  terraform taint module.en.null_resource.build
+  terraform taint module.en.null_resource.migrate
+  popd >/dev/null 2>&1
+  ${ROOT}/scripts/ci-terraform.sh deploy
+
+  export_terraform_output apiserver_urls[0] VERIFICATION_SERVER_API
+  export_terraform_output adminapi_urls[0] VERIFICATION_ADMIN_API
+  export_terraform_output db_apikey_database_key_secret DB_APIKEY_DATABASE_KEY
+  export_terraform_output db_apikey_signature_key_secret DB_APIKEY_SIGNATURE_KEY
+  export_terraform_output db_conn DB_CONN
+  export_terraform_output db_encryption_key_secret DB_ENCRYPTION_KEY
+  export_terraform_output db_name DB_NAME
+  export_terraform_output db_password DB_PASSWORD
+  export_terraform_output db_user DB_USER
+  export_terraform_output db_verification_code_key_secret DB_VERIFICATION_CODE_DATABASE_KEY
+  export DB_PASSWORD="secret://${DB_PASSWORD}"
+  export DB_SSLMODE=disable
+  export HEALTH_AUTHORITY_CODE=test-777
+
+  run_e2e_full_test
+}
+
 function run_e2e_test() {
   which cloud_sql_proxy 1>/dev/null 2>&1 || {
     wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/bin/cloud_sql_proxy
@@ -73,6 +112,18 @@ function run_e2e_test() {
   trap "kill ${last_thread_pid} || true" EXIT
 
   make e2e-test
+}
+
+function run_e2e_full_test() {
+  which cloud_sql_proxy 1>/dev/null 2>&1 || {
+    wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/bin/cloud_sql_proxy
+    chmod +x /usr/bin/cloud_sql_proxy
+  }
+  cloud_sql_proxy -instances=${DB_CONN}=tcp:5432 &
+  last_thread_pid=$!
+  trap "kill ${last_thread_pid} || true" EXIT
+
+  make e2e-full-test
 }
 
 # Export en module output
@@ -124,7 +175,7 @@ case "${ACTION}" in
     help
     ;;
 
-  "smoke" | "incremental" )
+  "smoke" | "incremental" | "full" )
     "${ACTION}"
     ;;
 
