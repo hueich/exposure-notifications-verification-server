@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/exposure-notifications-verification-server/pkg/api"
@@ -215,7 +216,12 @@ func RunEndToEnd(ctx context.Context, config *config.E2ETestConfig) error {
 			logger.Debugw("publish",
 				"request", publish,
 			)
-			if err := jsonclient.MakeRequest(ctx, client, config.KeyServer, http.Header{}, &publish, &response); err != nil {
+			publishURL := config.KeyServer
+			if !strings.HasSuffix(publishURL, "publish") {
+				publishURL = strings.TrimRight(publishURL, "/")
+				publishURL += "/v1/publish"
+			}
+			if err := jsonclient.MakeRequest(ctx, client, publishURL, http.Header{}, &publish, &response); err != nil {
 				result = observability.ResultNotOK()
 				return nil, fmt.Errorf("error publishing teks: %w", err)
 			} else if response.ErrorMessage != "" {
