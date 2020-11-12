@@ -106,6 +106,10 @@ function full() {
   export DB_SSLMODE=disable
   export HEALTH_AUTHORITY_CODE=test-777
 
+  ${ROOT}/scripts/build
+  ${ROOT}/scripts/deploy
+  ${ROOT}/scripts/promote
+
   run_e2e_full_test
 }
 
