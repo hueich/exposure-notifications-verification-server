@@ -81,14 +81,14 @@ e2e-test:
 		-count=1 \
 		-timeout=30m \
 		-tags=e2e \
-		./pkg/integration \
-	  -is_e2e
+		./pkg/e2e
 .PHONY: e2e-test
 
-e2e-full-test:
+e2e-test-old:
 	@go test \
 		-count=1 \
 		-timeout=30m \
-		-tags=e2e-full \
-		./pkg/e2e
-.PHONY: e2e-full-test
+		-tags=e2e-old \
+		./pkg/integration \
+	  -is_e2e
+.PHONY: e2e-test-old
