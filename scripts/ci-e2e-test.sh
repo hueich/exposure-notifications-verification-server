@@ -38,7 +38,8 @@ function incremental() {
       export PROJECT_ID
   fi
 
-  if [[ -z "${KEY_SERVER_PROJECT_ID:-}" ]]; then
+  if [[ -z "${KEY_SERVER_PROJECT_ID:-}" || -z "${KEY_SERVER_REGION:-}" ]]; then
+    # TODO: Obtain these programmatically.
     KEY_SERVER_PROJECT_ID="apollo-boskos-key-e2e-01"
     KEY_SERVER_REGION="us-central1"
   fi
@@ -71,6 +72,7 @@ function incremental() {
   export_terraform_output db_verification_code_key_secret DB_VERIFICATION_CODE_DATABASE_KEY
   export DB_PASSWORD="secret://${DB_PASSWORD}"
   export DB_SSLMODE=disable
+  # TODO(aluh): Use a test HA that exists in the key server e2e instance.
   export HEALTH_AUTHORITY_CODE=test-777
 
   ${ROOT}/scripts/build
